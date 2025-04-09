@@ -1,0 +1,18 @@
+groups:
+  - name: subgraph_alerts
+    rules:
+      - alert: SubgraphUnhealthy
+        expr: subgraph_healthy == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Subgraph is unhealthy"
+
+      - alert: SubgraphBlocksBehind
+        expr: subgraph_blocks_behind > 50
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Subgraph is more than 50 blocks behind"

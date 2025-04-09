@@ -16,3 +16,11 @@ groups:
           severity: warning
         annotations:
           summary: "Subgraph is more than 50 blocks behind"
+
+      - alert: SubgraphScrapeFailed
+        expr: up == 0 and on(instance) (instance =~ ".*monitor.*")
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus failed to scrape subgraph: {{ $labels.instance }}"

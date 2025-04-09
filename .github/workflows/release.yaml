@@ -16,6 +16,9 @@ jobs:
       - name: Build binary
         run: cargo build --release
 
+      - name: Rename binary
+        run: mv target/release/subgraph-monitor subgraph-monitor-x86_64
+
       - name: Upload release binary
         uses: softprops/action-gh-release@v2
         with:
@@ -23,6 +26,6 @@ jobs:
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           make_latest: true
-          files: subgraph-monitor
+          files: subgraph-monitor-x86_64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,6 +1,6 @@
 [package]
 name = "subgraph-monitor"
-author = "tommi@romeblockchain.com"
+authors = ["tommi@romeblockchain.com"]
 version = "0.1.1"
 edition = "2021"
 description = "A tool to monitor The Graph subgraph sync status"

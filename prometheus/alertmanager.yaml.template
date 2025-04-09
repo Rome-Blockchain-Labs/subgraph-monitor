@@ -9,8 +9,18 @@ receivers:
         title: 'Subgraph Alert'
         message: '{{ .CommonAnnotations.summary }}'
 
+  - name: slack
+    slack_configs:
+      - api_url: 'https://hooks.slack.com/services/XXXXXXXXX/YYYYYYYYYY/XXXCqtR2sZZZRUommVSv7FiF'
+        title: 'Subgraph Alert'
+        text: '{{ .CommonAnnotations.summary }}'
+
 route:
   receiver: pushover
   group_wait: 10s
   group_interval: 30s
   repeat_interval: 1h
+  routes:
+    - receiver: slack
+      matchers:
+        - severity="critical"

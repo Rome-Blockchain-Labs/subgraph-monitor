@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::time;
 
+mod dashboard;
+
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
@@ -186,6 +188,176 @@ async fn check_subgraph(app_state: web::Data<AppState>) {
     app_state.metrics.blocks_behind.set(blocks_behind);
 }
 
+#[get("/")]
+async fn root(app_state: web::Data<AppState>) -> impl Responder {
+    // minimize mutex lock duration by cloning only what's needed
+    let status = {
+        let status_guard = app_state.status.lock().unwrap();
+        status_guard.clone()
+    };
+
+    let health_color = if status.healthy { "#22c55e" } else { "#ef4444" };
+    let health_text = if status.healthy { "Healthy" } else { "Unhealthy" };
+    
+    HttpResponse::Ok().content_type("text/html").body(format!(
+        r#"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Subgraph Monitor</title>
+    <style>
+        :root {{
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+            --accent-color: #3b82f6;
+        }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+        }}
+        .container {{
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }}
+        .card {{
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }}
+        h1 {{
+            margin: 0 0 1.5rem 0;
+            font-weight: 600;
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--accent-color);
+            padding-bottom: 0.5rem;
+            color: var(--accent-color);
+        }}
+        p {{
+            margin: 0.75rem 0;
+        }}
+        .info-grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }}
+        .info-item {{
+            padding: 1rem;
+            background-color: #f1f5f9;
+            border-radius: 6px;
+            border-left: 4px solid var(--accent-color);
+        }}
+        .status-indicator {{
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            background-color: {health_color};
+            color: white;
+            display: inline-block;
+        }}
+        .stat-label {{
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-bottom: 0.25rem;
+        }}
+        .stat-value {{
+            font-size: 1.25rem;
+            font-weight: 600;
+        }}
+        .metrics-links {{
+            margin-top: 1.5rem;
+            text-align: center;
+        }}
+        .metrics-links a {{
+            display: inline-block;
+            margin: 0 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: var(--accent-color);
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }}
+        .metrics-links a:hover {{
+            background-color: #2563eb;
+        }}
+        .timestamp {{
+            font-size: 0.875rem;
+            color: #64748b;
+            text-align: right;
+            margin-top: 0.5rem;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>Subgraph Monitor</h1>
+            
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="stat-label">Subgraph</div>
+                    <div class="stat-value" style="font-size: 0.9rem; word-break: break-all;">{}</div>
+                </div>
+                <div class="info-item">
+                    <div class="stat-label">RPC Endpoint</div>
+                    <div class="stat-value" style="font-size: 0.9rem; word-break: break-all;">{}</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                    <span style="font-weight: 600; font-size: 1.2rem;">Status:</span>
+                    <span class="status-indicator">{}</span>
+                </div>
+                
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="stat-label">Synced Block</div>
+                        <div class="stat-value">{}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="stat-label">Chain Head</div>
+                        <div class="stat-value">{}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="stat-label">Blocks Behind</div>
+                        <div class="stat-value">{}</div>
+                    </div>
+                </div>
+                
+                <div class="timestamp">Last checked: {}</div>
+            </div>
+            
+            <div class="metrics-links">
+                <a href="/health">JSON Health Endpoint</a>
+                <a href="/metrics">Prometheus Metrics</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>"#,
+        app_state.subgraph_url,
+        app_state.rpc_url,
+        health_text,
+        status.synced_block_height,
+        status.chain_head_block_height,
+        status.blocks_behind,
+        status.last_checked
+    ))
+}
+
 #[get("/health")]
 async fn health_endpoint(app_state: web::Data<AppState>) -> impl Responder {
     let status = app_state.status.lock().unwrap().clone();
@@ -275,6 +447,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .app_data(app_state.clone())
+            .service(web::resource("/").to(dashboard::render_dashboard))
             .service(health_endpoint)
             .service(metrics_endpoint)
     })

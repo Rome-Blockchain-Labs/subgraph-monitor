@@ -100,7 +100,7 @@ jobs:
           docker rm ${CONTAINER_NAME} || true
           
           # Build and start the new container
-          docker-compose up -d --build
+          docker compose up -d --build
           
           # Show logs
           docker logs ${CONTAINER_NAME}

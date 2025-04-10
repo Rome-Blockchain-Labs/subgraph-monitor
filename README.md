@@ -21,3 +21,14 @@ cargo build --release
 
 ## examples
 check prometheus for alerts and haproxy for failover lb setup
+
+## deploy flow
+you need to add the following variables and secrets to GitHub for this workflow:
+
+### 🔐 **Secrets (under *Settings → Secrets and variables → Actions → Secrets*)**
+- `SSH_PRIVATE_KEY` – Private SSH key for deployment access (used by `ssh-agent`).
+
+
+### 🌐 **Variables (under *Settings → Secrets and variables → Actions → Variables*)**
+- `SERVER_IP` – IP address of the target deployment server.
+- `SSH_USER` – SSH username for deployment.

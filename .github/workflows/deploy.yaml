@@ -61,10 +61,19 @@ jobs:
           # Create a temporary directory 
           mkdir -p docker-deploy
           
-          # Create a basic Dockerfile
+           # Create a basic Dockerfile with all necessary dependencies
           cat > docker-deploy/Dockerfile << EOF
           FROM debian:bookworm-slim
           WORKDIR /app
+          
+          # Install dependencies for Rust binaries
+          RUN apt-get update && apt-get install -y \
+              libssl3 \
+              ca-certificates \
+              tzdata \
+              curl \
+              && rm -rf /var/lib/apt/lists/*
+          
           COPY subgraph-monitor /app/subgraph-monitor
           RUN chmod +x /app/subgraph-monitor
           ENTRYPOINT ["/app/subgraph-monitor"]

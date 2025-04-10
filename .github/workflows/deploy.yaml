@@ -63,7 +63,7 @@ jobs:
           
           # Create a basic Dockerfile
           cat > docker-deploy/Dockerfile << EOF
-          FROM debian:bullseye-slim
+          FROM debian:bookworm-slim
           WORKDIR /app
           COPY subgraph-monitor /app/subgraph-monitor
           RUN chmod +x /app/subgraph-monitor
